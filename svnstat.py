@@ -7,7 +7,7 @@ import re
 from pylab import *
 import dateutil
 
-prog = re.compile(r"r(\d+) \| (\w+) \| (\d+-\d+-\d+)")
+prog = re.compile(r"r(\d+) \| (.+) \| (\d+-\d+-\d+)")
 
 # author, date, commits, additions, deletions
 c = {}
