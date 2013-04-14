@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# sudo easy_install matplotlib
+# sudo pip install numpy matplotlib
 
 import os
 import re
@@ -12,6 +12,7 @@ prog = re.compile(r"r(\d+) \| (.+) \| (\d+-\d+-\d+)")
 # author, date, commits, additions, deletions
 c = {}
 
+
 def get_contribution(last, revision):
     additions = 0
     deletions = 0
@@ -19,21 +20,18 @@ def get_contribution(last, revision):
     cmd = "svn diff -r" + last + ":" + revision
 
     p = os.popen(cmd, "r")
-    while 1:
-        line = p.readline()
-        if not line:
-            break
-
-        if line.startswith("-"):
-            if not line.startswith("---"):
+    for line in p:
+        if line[0] == "-":
+            if line[0:2] != "---":
                 deletions += 1
-        elif line.startswith("+"):
-            if not line.startswith("+++"):
+        elif line[0] == "+":
+            if line[0:2] != "+++":
                 additions += 1
 
     p.close()
 
     return additions, deletions
+
 
 def draw_commits(author, dates, commits):
     X = [dateutil.parser.parse(s) for s in dates]
@@ -50,11 +48,13 @@ def draw_commits(author, dates, commits):
     legend(loc="upper right")
     fig.savefig(author + '_commits.png')
 
+
 def limit(A, D):
     m = 0
     for a, d in zip(A, D):
         m = max(m, a + d)
     return m
+
 
 def draw_lines(author, dates, additions, deletions):
     X = [dateutil.parser.parse(s) for s in dates]
@@ -83,41 +83,34 @@ last = ""
 revision = ""
 
 p = os.popen("svn log", "r")
-while 1:
-    line = p.readline()
-    if not line:
-        break
-
+for line in p:
     result = prog.match(line)
-    if result is not None:
+    if result:
         if first:
-            revision = result.groups(1)[0]
-            author = result.groups(1)[1]
-            date = result.groups(1)[2]
+            revision, author, date = result.groups(1)
             first = False
         else:
             last = result.groups(1)[0]
-
             additions, deletions = get_contribution(last, revision)
 
-            if c.has_key(author):
-                if not c[author].has_key(date):
-                    c[author][date] = { 'commits' : 1, 'additions' : additions, 'deletions' : deletions }
+            if author in c:
+                if date not in c[author]:
+                    c[author][date] = {'commits': 1, 'additions': additions,
+                                       'deletions': deletions}
                 else:
                     c[author][date]['commits'] += 1
                     c[author][date]['additions'] += additions
                     c[author][date]['deletions'] += deletions
             else:
                 c[author] = {}
-                c[author][date] = { 'commits' : 1, 'additions' : additions, 'deletions' : deletions }
+                c[author][date] = {'commits': 1, 'additions': additions,
+                                   'deletions': deletions}
 
-            revision = result.groups(1)[0]
-            author = result.groups(1)[1]
-            date = result.groups(1)[2]
+            revision, author, date = result.groups(1)
 
 p.close()
 
-for author in c.keys():
+for author in c:
     dates = []
     commits = []
     additions = []
@@ -127,7 +120,7 @@ for author in c.keys():
         commits.append(c[author][date]['commits'])
         additions.append(c[author][date]['additions'])
         deletions.append(c[author][date]['deletions'])
-        print author, date, c[author][date]['commits'], c[author][date]['additions'], c[author][date]['deletions']
+        print author, date, c[author][date]['commits'],
+        print c[author][date]['additions'], c[author][date]['deletions']
     draw_commits(author, dates, commits)
     draw_lines(author, dates, additions, deletions)
-
